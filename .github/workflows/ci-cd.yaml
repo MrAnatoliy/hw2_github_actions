@@ -49,3 +49,4 @@ jobs:
                 curl -s http://127.0.0.1:8080/health | jq -e '.health == "ok"' || exit 1
                 docker stop app; docker rm app
                 exit $s
+                
