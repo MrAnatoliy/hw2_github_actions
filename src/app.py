@@ -29,3 +29,18 @@ async def mult_numbers(a: int, b: int):
     return {
         "result": a * b
     }
+    
+@app.get("/div")
+async def mult_numbers(a: int, b: int):
+    if b == 0:
+        return {
+            "error": "cant divide by zero"
+        }
+    
+    if not a or not b:
+        return {
+            "error": "a or b are undefinded"
+        }
+    return {
+        "result": a / b
+    }
