@@ -1,90 +1,91 @@
 name: CI/CD
 on:
-    push:
-        branches: [ "master" ]
-    pull_request:
-        branches: [ "master" ]
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
 
 jobs:
-    unit-test:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Set up python
-              uses: actions/setup-python@v4
-              with:
-                python-version: '3.12'
-                cache: 'pip'
-            
-            - name: Install deps
-              run: |
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
-                pip install -e .
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
 
-            - name: Run tests
-              run: pytest -v
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
 
-    build-test:
-        needs: unit-test
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+      - name: Run tests
+        run: pytest -v
 
-            - name: Building image
-              run: docker build -t myapp:test .
+  build-test:
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Run container and check health
-              run: |
-                docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test
-                sleep 2                                    # дать время упасть
-                docker ps -a                               # посмотреть статус
-                docker logs app                            # ❗ всегда покажет логи
-                docker exec app true || echo "container already dead"
-                # теперь пробуем хит
-                sudo apt-get install -y jq   # если вдруг нет
-                curl -s http://127.0.0.1:8080/health | jq -e '.health == "ok"' || exit 1
-                docker stop app; docker rm app
-                exit $s
-    
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+      - name: Building image
+        run: docker build -t myapp:test .
 
-            - name: Build & push image
-              uses: docker/login-action@v3
-              with:
-                registry: ghcr.io
-                username: ${{ github.actor }}
-                password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run container and check health
+        run: |
+          docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test
+          sleep 2                                    # дать время упасть
+          docker ps -a                               # посмотреть статус
+          docker logs app                            # ❗ всегда покажет логи
+          docker exec app true || echo "container already dead"
+          # теперь пробуем хит
+          sudo apt-get install -y jq   # если вдруг нет
+          curl -s http://127.0.0.1:8080/health | jq -e '.health == "ok"' || exit 1
+          docker stop app; docker rm app
+          exit $s
 
-            - name: set lower-case owner and repo
-              id: strings
-              run: |
-                echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
-                echo "repo=${GITHUB_EVENT_REPOSITORY_NAME,,}" >> $GITHUB_OUTPUT
+  deploy:
+    needs: [unit-test, build-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Build and push
-              uses: docker/build-push-action@v5
-              with:
-                context: .
-                push: true
-                tags: ghcr.io/${{ steps.strings.outputs.owner }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+      - name: Build & push image
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: deploy to VM
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host:     ${{ secrets.CLOUDRU_HOST }}
-                username: ${{ secrets.CLOUDRU_USER }}
-                key:      ${{ secrets.CLOUDRU_SSH_KEY }}
-                port:     ${{ secrets.CLOUDRU_SSH_PORT }}
-                script: |
-                  export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-                  export GITHUB_REPOSITORY_NAME="${{ github.event.repository.name }}"
-                  export GITHUB_REF_NAME="${{ github.ref_name }}"
-                  /home/tttolik/deploy.sh
+      - name: set lower-case owner and repo
+        id: strings
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+          echo "repo=${GITHUB_EVENT_REPOSITORY_NAME,,}" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ steps.strings.outputs.owner }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+
+      - name: deploy to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.CLOUDRU_HOST }}
+          username: ${{ secrets.CLOUDRU_USER }}
+          key: ${{ secrets.CLOUDRU_SSH_KEY }}
+          port: ${{ secrets.CLOUDRU_SSH_PORT }}
+          script: |
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            export GITHUB_REPOSITORY_NAME="${{ github.event.repository.name }}"
+            export GITHUB_REF_NAME="${{ github.ref_name }}"
+            /home/tttolik/deploy.sh
