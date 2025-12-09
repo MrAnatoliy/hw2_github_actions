@@ -63,12 +63,18 @@ jobs:
                 username: ${{ github.actor }}
                 password: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: set lower-case owner and repo
+              id: strings
+              run: |
+                echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+                echo "repo=${GITHUB_EVENT_REPOSITORY_NAME,,}" >> $GITHUB_OUTPUT
+
             - name: Build and push
               uses: docker/build-push-action@v5
               with:
                 context: .
                 push: true
-                tags: ghcr.io/${{ github.repository_owner && lower(github.repository_owner) }}/${{ github.event.repository.name && lower(github.event.repository.name) }}:${{ github.ref_name }}
+                tags: ghcr.io/${{ steps.strings.outputs.owner }}/${{ steps.strings.outputs.repo }}:${{ github.ref_name }}
 
             - name: deploy to VM
               uses: appleboy/ssh-action@v1.0.3
