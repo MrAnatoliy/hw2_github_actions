@@ -68,7 +68,15 @@ jobs:
         id: strings
         run: |
           echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
-          echo "repo=${GITHUB_EVENT_REPOSITORY_NAME,,}" >> $GITHUB_OUTPUT
+          echo "repo=${GITHUB_REPOSITORY#*/}"      >> $GITHUB_OUTPUT   # <-- исправлено
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.strings.outputs.owner }}/${{ steps.strings.outputs.repo }}
+          tags: |
+            type=ref,event=pr,prefix=pr-
 
       - name: Build and push
         uses: docker/build-push-action@v5
