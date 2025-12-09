@@ -74,7 +74,7 @@ jobs:
               with:
                 context: .
                 push: true
-                tags: ghcr.io/${{ steps.strings.outputs.owner }}/${{ steps.strings.outputs.repo }}:${{ github.ref_name }}
+                tags: ghcr.io/${{ steps.strings.outputs.owner }}/${{ github.event.repository.name }}:${{ github.ref_name }}
 
             - name: deploy to VM
               uses: appleboy/ssh-action@v1.0.3
