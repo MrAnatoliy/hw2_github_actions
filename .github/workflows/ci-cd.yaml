@@ -37,12 +37,14 @@ jobs:
             - name: Building image
               run: docker build -t myapp:test .
 
-            - name: Running container and checking health
+            - name: Run container and check health
               run: |
-                docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test 
-                timeout 1 echo 'waiting...'
-                docker ps
-                docker logs app
-                
-                docker logs app
-                docker stop app
+                docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test
+                sleep 2                                    # дать время упасть
+                docker ps -a                               # посмотреть статус
+                docker logs app                            # ❗ всегда покажет логи
+                docker exec app true || echo "container already dead"
+                # теперь пробуем хит
+                curl -f http://127.0.0.1:8080/health && s=0 || s=1
+                docker stop app; docker rm app
+                exit $s
