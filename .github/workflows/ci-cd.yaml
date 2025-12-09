@@ -1,0 +1,45 @@
+name: CI/CD
+on:
+    push:
+        branches: [ "master" ]
+    pull_request:
+        branches: [ "master" ]
+
+jobs:
+    unit-test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.12'
+                cache: 'pip'
+            
+            - name: Install deps
+              run: |
+                python -m pip install --upgrade pip
+                pip install -r requirements.txt
+                pip install -e .
+
+            - name: Run tests
+              run: pytest -v
+
+    build-test:
+        needs: unit-test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Building image
+              run: docker build -t myapp:test .
+
+            - name: Running container and checking health
+              run: |
+                docker run -d --name app -p 8080:8080 myapp:test
+                timeout 30 bash -c 'until nc -z localhost 8080; do sleep 1; done'
+                curl -f http://localhost:8080/health || (docker logs app && exit 1)
+                docker stop app
