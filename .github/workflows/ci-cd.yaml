@@ -44,4 +44,5 @@ jobs:
                 docker ps
                 docker logs app
                 curl "http://localhost:8080/health"
+                docker logs app
                 docker stop app
