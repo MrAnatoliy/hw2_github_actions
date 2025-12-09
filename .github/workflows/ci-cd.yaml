@@ -39,7 +39,7 @@ jobs:
 
             - name: Running container and checking health
               run: |
-                docker run -d -p 127.0.0.1:8080:8080 myapp:test 
+                docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test 
                 timeout 30 bash -c 'until nc -z localhost 8080; do sleep 1; done'
                 curl -f http://localhost:8080/health || (docker logs app && exit 1)
                 docker stop app
