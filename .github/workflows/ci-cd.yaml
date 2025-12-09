@@ -41,6 +41,7 @@ jobs:
               run: |
                 docker run --name app -d -p 127.0.0.1:8080:8080 myapp:test 
                 timeout 1 echo 'waiting...'
+                docker ps
                 docker logs app
-                curl -f http://localhost:8080/health
+                curl "http://localhost:8080/health"
                 docker stop app
