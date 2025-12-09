@@ -93,7 +93,5 @@ jobs:
           key: ${{ secrets.CLOUDRU_SSH_KEY }}
           port: ${{ secrets.CLOUDRU_SSH_PORT }}
           script: |
-            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-            export GITHUB_REPOSITORY_NAME="${{ github.event.repository.name }}"
-            export GITHUB_REF_NAME="${{ github.ref_name }}"
+            export IMAGE="${{ steps.meta.outputs.tags }}"  # <-- готовый тег
             /home/tttolik/deploy.sh
