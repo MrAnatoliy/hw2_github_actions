@@ -20,3 +20,12 @@ async def add_numbers(a: int, b: int):
         "result": adder(a,b)
     }
     
+@app.get("/mult")
+async def mult_numbers(a: int, b: int):
+    if not a or not b:
+        return {
+            "error": "a or b are undefinded"
+        }
+    return {
+        "result": a * b
+    }
